@@ -1,23 +1,23 @@
-import express, { Application } from 'express';
-import UserRoutes from '../src/routes/userRoutes';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import authRoutes from "./routes/authRoutes";
 
-class App {
-  public app: Application;
+dotenv.config();
 
-  constructor() {
-    this.app = express();
-    this.initializeMiddleware();
-    this.initializeRoutes();
-  }
+const app = express();
 
-  private initializeMiddleware() {
-    this.app.use(express.json());
-  }
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-  private initializeRoutes() {
-    const userRoutes = new UserRoutes();
-    this.app.use('/users', userRoutes.router);
-  }
-}
+// Routes
+app.use("/api/auth", authRoutes);
 
-export default App;
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+export default app;
