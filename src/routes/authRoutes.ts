@@ -1,18 +1,19 @@
 import { Router } from "express";
 import AuthController from "../controllers/AuthController";
-import { authenticate, authorize } from "../middlewares/authMiddleware";
+import authMiddleware from "../middlewares/authMiddleware";
+import { validateResetToken } from "../middlewares/validateResetToken";
+import upload from "../config/multerConfig";
 
 const router = Router();
-const controller = new AuthController();
+const authController = new AuthController();
 
-router.post("/register", controller.register.bind(controller));
-router.post("/login", controller.login.bind(controller));
-router.get("/profile", authenticate, controller.getProfile.bind(controller));
-router.put("/profile", authenticate, controller.updateProfile.bind(controller));
-router.post("/forgot-password", controller.forgotPassword.bind(controller));
-router.post("/reset-password", controller.resetPassword.bind(controller));
-router.get("/admin", authenticate, authorize("ORGANIZER"), (req, res) => {
-    res.send("Organizer only route");
-});
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+router.get("/profile", authMiddleware, authController.getProfile);
+router.put("/update-profile", upload.single("profileImage"), authController.updateProfile);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", validateResetToken, authController.resetPassword);
+
+
 
 export default router;

@@ -1,47 +1,34 @@
+// src/middlewares/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-interface JwtPayload {
+interface AuthPayload {
     id: string;
-    role: "CUSTOMER" | "ORGANIZER";
+    role: string;
 }
 
-// Extend Express request untuk menyimpan user
 declare global {
     namespace Express {
         interface Request {
-        user?: JwtPayload;
+            user?: AuthPayload;
         }
     }
 }
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export default function authMiddleware(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "Unauthorized: Token not provided" });
+        return res.status(401).json({ message: "No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;
         req.user = decoded;
         next();
     } catch (error) {
-        return res.status(403).json({ message: "Forbidden: Invalid token" });
+        return res.status(401).json({ message: "Invalid token" });
     }
-};
-
-export const authorize = (...roles: Array<"CUSTOMER" | "ORGANIZER">) => {
-    return (req: Request, res: Response, next: NextFunction) => {
-        if (!req.user) {
-            return res.status(401).json({ message: "Unauthorized: No user info" });
-        }
-
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ message: "Forbidden: Insufficient role" });
-        }
-
-        next();
-    };
-};
+}
