@@ -8,7 +8,117 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id              String   @id @default(uuid())
+  email           String   @unique @db.VarChar(255)
+  password        String
+  name            String
+  role            Role
+  profileImage    String? // URL
+  referralCode    String   @unique @default(uuid())
+  referredById    String?
+  referredBy      User?    @relation("Referrals", fields: [referredById], references: [id])
+  referrals       User[]   @relation("Referrals")
+  points          Point[]
+  coupons         Coupon[]
+  transactions    Transaction[]
+  attendees       Attendee[]
+  passwordResets  PasswordResetToken[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  eventsOrganized Event[]  @relation("EventOrganizer")
+}
+
+model Point {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Int
+  source    PointSource
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id        String     @id @default(uuid())
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String
+  type      CouponType
+  value     Int
+  expiresAt DateTime
+  used      Boolean    @default(false)
+  usedAt    DateTime?
+  event     Event?     @relation(fields: [eventId], references: [id])
+  eventId   String?
+  createdAt DateTime   @default(now())
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  capacity    Int
+  seatsTaken  Int       @default(0)
+  organizer   User      @relation("EventOrganizer", fields: [organizerId], references: [id])
+  organizerId String
+  coupons     Coupon[]
+  transactions Transaction[]
+  attendees   Attendee[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Transaction {
+  id         String            @id @default(uuid())
+  user       User              @relation(fields: [userId], references: [id])
+  userId     String
+  event      Event             @relation(fields: [eventId], references: [id])
+  eventId    String
+  ticketQty  Int
+  totalPrice Int
+  proofImage String?
+  status     TransactionStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+}
+
+model Attendee {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  event      Event    @relation(fields: [eventId], references: [id])
+  eventId    String
+  ticketQty  Int
+  totalPaid  Int
+  createdAt  DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+enum Role {
+  CUSTOMER
+  ORGANIZER
+}
+
+enum CouponType {
+  DISCOUNT 
+  VOUCHER 
+}
+
+enum TransactionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PointSource {
+  REFERRAL
+  EVENT
+  PROMOTION
 }

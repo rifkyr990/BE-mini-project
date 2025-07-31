@@ -1,23 +1,17 @@
-import express, { Application } from 'express';
-import UserRoutes from '../src/routes/userRoutes';
+import express, { Request, Response, NextFunction } from 'express';
+import authRoutes from './routes/authRoutes';  // Import routes
+import { ErrorRequestHandler } from 'express';
+import dotenv from "dotenv";
 
-class App {
-  public app: Application;
+dotenv.config();
 
-  constructor() {
-    this.app = express();
-    this.initializeMiddleware();
-    this.initializeRoutes();
-  }
+const app = express();
+app.use(express.json());
 
-  private initializeMiddleware() {
-    this.app.use(express.json());
-  }
+app.use("/api/auth", authRoutes);
+app.use((err: ErrorRequestHandler, req: Request, res: Response, next: NextFunction) => {
+    console.error(err); 
+    res.status(500).json({ message: 'Something went wrong', error: err });
+});
 
-  private initializeRoutes() {
-    const userRoutes = new UserRoutes();
-    this.app.use('/users', userRoutes.router);
-  }
-}
-
-export default App;
+export default app;
