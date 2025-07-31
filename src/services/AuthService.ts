@@ -4,15 +4,11 @@ import jwt from "jsonwebtoken";
 import { Role, PointSource } from "@prisma/client";
 import { generateReferralCode } from "../utils/generatedReferal";
 import cloudinary from "../config/cloudinaryConfig";
+import { addMonths } from 'date-fns';
 
-export class AuthService {
-    public static async register(data: {
-        email: string;
-        password: string;
-        name: string;
-        role: string;
-        referralCode?: string;
-    }) {
+class AuthService {
+
+    public static async register(data: {email: string;password: string;name: string;role: string;referralCode?: string;}) {
         const { email, password, name, role, referralCode } = data;
         const cleanWhiteSpace = referralCode?.trim();
 
@@ -64,7 +60,7 @@ export class AuthService {
         });
 
         if (cleanWhiteSpace && referredById) {
-            const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+            const expiresAt = addMonths(new Date(), 3);
             await prisma.point.create({
                 data: {
                     userId: referredById,
@@ -84,14 +80,20 @@ export class AuthService {
             });
         }
 
-        return newUser;
+        return {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+            referralCode: newUser.referralCode,
+            referredBy: referredById ? cleanWhiteSpace : null,
+        };
     }
 
     public static async login(email: string, password: string) {
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new Error("Invalid credentials");
+            throw new Error("Password or email is wrong");
         }
 
         const token = jwt.sign(
@@ -123,7 +125,7 @@ export class AuthService {
         if (fileStream) {
             // Misalnya upload ke Cloudinary
             uploadedUrl = await new Promise<string>((resolve, reject) => {
-                const uploadStream = cloudinary.uploader.upload_stream({ folder: 'avatars' }, (err, result) => {
+                const uploadStream = cloudinary.uploader.upload_stream({ folder: 'upload' }, (err, result) => {
                     if (err || !result) return reject(err);
                     resolve(result.secure_url);
                 });
@@ -131,7 +133,6 @@ export class AuthService {
                 fileStream.pipe(uploadStream);
             });
         }
-
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -203,3 +204,5 @@ export class AuthService {
         return { message: "Password reset successful" };
     }
 }
+
+export default AuthService;

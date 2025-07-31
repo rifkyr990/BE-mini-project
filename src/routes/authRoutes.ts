@@ -1,6 +1,6 @@
 import { Router } from "express";
 import AuthController from "../controllers/AuthController";
-import authMiddleware from "../middlewares/authMiddleware";
+import { auth } from "../middlewares/authMiddleware";
 import { validateResetToken } from "../middlewares/validateResetToken";
 import multer from 'multer';
 
@@ -11,8 +11,8 @@ const authController = new AuthController();
 
 router.post("/register", authController.register);
 router.post("/login", authController.login);
-router.get("/profile", authMiddleware, authController.getProfile);
-router.put('/profile', upload.single('profileImage'), authMiddleware, authController.updateProfile);
+router.get("/profile", auth(), authController.getProfile);
+router.put('/profile', upload.single('profileImage'), auth(), authController.updateProfile);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", validateResetToken, authController.resetPassword);
 
