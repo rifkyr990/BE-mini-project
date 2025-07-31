@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { AuthService } from "../services/AuthService";
 import { sendEmail } from "../utils/sendMail";
 import { resetpassMailTemplate } from "../template/resetpassMailTemplate";
-import { asyncHandler } from "../helpers/asyncHandler"; // Import asyncHandler
+import { asyncHandler } from "../helpers/asyncHandler";
+import streamifier from 'streamifier' // Import asyncHandler
 
 class AuthController {
-    // Gunakan asyncHandler untuk membungkus setiap handler
     public register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
         const newUser = await AuthService.register(req.body);
         res.status(201).json({
@@ -26,9 +26,20 @@ class AuthController {
     });
 
     public updateProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-        const user = await AuthService.updateProfile(req.user!.id, req.body);  // Ambil file image dari req.file
+        console.log('BODY:', req.body);
+        console.log('FILE:', req.file);
+
+        let fileStream: NodeJS.ReadableStream | undefined;
+
+        if (req.file && req.file.buffer) {
+            fileStream = streamifier.createReadStream(req.file.buffer);
+        }
+
+        const user = await AuthService.updateProfile(req.user!.id, req.body, fileStream)
         res.status(200).json({ message: "Profile updated", user });
     });
+
+
     
 
     public forgotPassword = asyncHandler(async (req: Request, res: Response) => {

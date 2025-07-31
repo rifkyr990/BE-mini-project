@@ -2,8 +2,8 @@ import { prisma } from "../config/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Role, PointSource } from "@prisma/client";
-import crypto from "crypto";
 import { generateReferralCode } from "../utils/generatedReferal";
+import cloudinary from "../config/cloudinaryConfig";
 
 export class AuthService {
     public static async register(data: {
@@ -117,17 +117,30 @@ export class AuthService {
         });
     }
 
-    public static async updateProfile(userId: string, data: { name?: string; password?: string; profileImage?: string }) {
-        const updateData: any = { name: data.name, profileImage: data.profileImage };
+    public static async updateProfile(userId: string, data: any, fileStream?: NodeJS.ReadableStream) {
+        let uploadedUrl;
 
-        if (data.password) {
-            updateData.password = await bcrypt.hash(data.password, 10);
+        if (fileStream) {
+            // Misalnya upload ke Cloudinary
+            uploadedUrl = await new Promise<string>((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream({ folder: 'avatars' }, (err, result) => {
+                    if (err || !result) return reject(err);
+                    resolve(result.secure_url);
+                });
+
+                fileStream.pipe(uploadStream);
+            });
         }
 
-        return prisma.user.update({
+
+        const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: updateData,
+            data: {
+                ...data,
+                ...(uploadedUrl ? { profileImage: uploadedUrl } : {}),
+            },
         });
+        return updatedUser;
     }
 
     public static async forgotPassword(email: string) {

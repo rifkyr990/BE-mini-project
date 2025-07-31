@@ -3,16 +3,12 @@ import path from 'path';
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (req: any, file: any, cb: any) => {
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext==='.jpg' || ext === '.jpeg' || ext === '.png') {
-        cb(null, true);
-    } else {
-        cb(new Error('Hanya format file yang disetuujui'), false);
+    if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+        return cb(new Error('Only images are allowed'));
     }
-}
+    cb(null, true);
+};
 
-export const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter
-});
+export const upload = multer({ storage, fileFilter });
