@@ -1,9 +1,7 @@
-import { error } from "console";
 import { prisma } from "../config/prisma";
 import { sendEmail } from "../utils/sendMail";
 import { transactionSuccessMail } from "../template/transactionSuccesMail";
 import { transactionFailedMail } from "../template/transactionFailedMail";
-import { resolve } from "path";
 import cloudinary from "../config/cloudinaryConfig";
 class TransactionService {
     public static async createTransaction(userId: string, data: {
