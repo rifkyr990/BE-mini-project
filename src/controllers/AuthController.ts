@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { AuthService } from "../services/AuthService";
 import { sendEmail } from "../utils/sendMail";
-import { resetpassMailTemplate } from "../template/resetpassMailTemplate";
+import { resetpassMailTemplate } from "../template/resetpassMail";
 import { asyncHandler } from "../helpers/asyncHandler";
 import streamifier from 'streamifier' // Import asyncHandler
+import AuthService from "../services/AuthService";
 
 class AuthController {
     public register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -38,9 +38,6 @@ class AuthController {
         const user = await AuthService.updateProfile(req.user!.id, req.body, fileStream)
         res.status(200).json({ message: "Profile updated", user });
     });
-
-
-    
 
     public forgotPassword = asyncHandler(async (req: Request, res: Response) => {
         const { email, name } = req.body;
