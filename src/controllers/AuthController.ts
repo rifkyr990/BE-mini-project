@@ -4,15 +4,28 @@ import { resetpassMailTemplate } from "../template/resetpassMail";
 import { asyncHandler } from "../helpers/asyncHandler";
 import streamifier from 'streamifier' // Import asyncHandler
 import AuthService from "../services/AuthService";
+import { verifyEmailTemplate } from "../template/verifyEmailTemplate";
 
 class AuthController {
     public register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
         const newUser = await AuthService.register(req.body);
+
         res.status(201).json({
             message: "User registered successfully",
             referralCode: newUser.referralCode,
         });
     });
+
+    public verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+        const { token } = req.query;
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        const message = await AuthService.verifyEmail(token);
+        return res.status(200).send(verifyEmailTemplate(message));
+    });
+
 
     public login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
         const { email, password } = req.body;
@@ -54,18 +67,35 @@ class AuthController {
         return res.status(200).json({ message: 'Password reset link has been sent to your email' });
     });
 
+    // public resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    //     const { token } = req.query;
+    //     const { newPassword } = req.body;
+
+    //     const { userId } = req;
+    //     if (!userId) {
+    //         return res.status(400).json({ error: 'Invalid userId' });
+    //     }
+    //     // Reset password untuk user
+    //     const result = await AuthService.resetPassword(token as string, newPassword);
+
+    //     return res.status(200).json({ message: result.message });
+    // });
     public resetPassword = asyncHandler(async (req: Request, res: Response) => {
-        const { token } = req.query;
-        const { newPassword } = req.body;
+        const { token, newPassword } = req.body;
 
-        const { userId } = req;
-        if (!userId) {
-            return res.status(400).json({ error: 'Invalid userId' });
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
         }
-        // Reset password untuk user
-        const result = await AuthService.resetPassword(token as string, newPassword);
+        if (!newPassword) {
+            return res.status(400).json({ error: 'Password is required' });
+        }
 
-        return res.status(200).json({ message: result.message });
+        try {
+            const result = await AuthService.resetPassword(token, newPassword);
+            return res.status(200).json({ message: result.message });
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message || 'Something went wrong' });
+        }
     });
 }
 

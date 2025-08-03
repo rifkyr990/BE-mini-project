@@ -4,7 +4,8 @@ import jwt from "jsonwebtoken";
 import { Role, PointSource } from "@prisma/client";
 import { generateReferralCode } from "../utils/generatedReferal";
 import cloudinary from "../config/cloudinaryConfig";
-import { addMonths } from 'date-fns';
+import { addMonths, addDays } from 'date-fns';
+import { sendEmail } from "../utils/sendMail";
 
 class AuthService {
 
@@ -66,7 +67,7 @@ class AuthService {
                     userId: referredById,
                     amount: 10000,
                     expiresAt,
-                    source: PointSource.REFERRAL, // <-- Tambahkan ini
+                    source: PointSource.REFERRAL,
                 },
             });
 
@@ -80,14 +81,62 @@ class AuthService {
             });
         }
 
+        const emailToken = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET!, { expiresIn: '1d' });
+        await prisma.emailVerificationToken.create({
+            data: {
+                userId: newUser.id,
+                token: emailToken,
+                expiresAt: addDays(new Date(), 1),
+            },
+        });
+
+        const verifyLink = `http://localhost:4000/api/auth/verify-email?token=${emailToken}`;
+        console.log("Verify email link:", verifyLink);
+        await sendEmail({
+            to: email,
+            subject: 'Verify Your Email',
+            text: `Please verify your email by clicking the following link:\n\n${verifyLink}`,
+            html: `<p>Hello ${name},</p><p>Click the link below to verify your email:</p><button><a target="_blank" href="${verifyLink}">Click here</a></button>`
+        });
+
         return {
             id: newUser.id,
+            name: newUser.name,
             email: newUser.email,
             role: newUser.role,
             referralCode: newUser.referralCode,
             referredBy: referredById ? cleanWhiteSpace : null,
         };
     }
+
+    public static async verifyEmail(token: string) {
+        const record = await prisma.emailVerificationToken.findUnique({
+            where: { token },
+            include: { user: true },
+        });
+
+        if (!record) {
+            throw new Error("Invalid or expired verification token");
+        }
+
+        if (record.expiresAt < new Date()) {
+            throw new Error("Verification token has expired");
+        }
+
+        // Update user
+        await prisma.user.update({
+            where: { id: record.userId },
+            data: { isVerified: true },
+        });
+
+        // Hapus token
+        await prisma.emailVerificationToken.delete({
+            where: { token },
+        });
+
+        return "Email verified successfully";
+    }
+
 
     public static async login(email: string, password: string) {
         const user = await prisma.user.findUnique({ where: { email } });
@@ -123,7 +172,6 @@ class AuthService {
         let uploadedUrl;
 
         if (fileStream) {
-            // Misalnya upload ke Cloudinary
             uploadedUrl = await new Promise<string>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream({ folder: 'upload' }, (err, result) => {
                     if (err || !result) return reject(err);
@@ -167,14 +215,43 @@ class AuthService {
                 token,
                 expiresAt,
             },
-    });
+        });
 
-    const resetLink = `http://localhost:4000/api/auth/reset-password?token=${token}`;
+        // const resetLink = `http://localhost:4000/api/auth/reset-password?token=${token}`;
+        const resetLink = `http://localhost:3000/auth/reset-password?token=${token}`;
 
-    // Kirim email reset password di sini
-    return { resetLink };
+        // Kirim email reset password di sini
+        return { resetLink };
     }
 
+    // public static async resetPassword(token: string, newPassword: string) {
+    //     const record = await prisma.passwordResetToken.findUnique({
+    //         where: { token },
+    //         include: { user: true },
+    //     });
+
+    //     if (!record) {
+    //         throw new Error("Invalid or expired token");
+    //     }
+
+    //     if (record.expiresAt < new Date()) {
+    //         throw new Error("Token expired");
+    //     }
+
+    //     const hashed = await bcrypt.hash(newPassword, 10);
+
+    //     await prisma.user.update({
+    //         where: { id: record.userId },
+    //         data: { password: hashed },
+    //     });
+
+    //     // Hapus token setelah digunakan
+    //     await prisma.passwordResetToken.delete({
+    //         where: { token },
+    //     });
+
+    //     return { message: "Password reset successful" };
+    // }
     public static async resetPassword(token: string, newPassword: string) {
         const record = await prisma.passwordResetToken.findUnique({
             where: { token },
@@ -202,6 +279,10 @@ class AuthService {
         });
 
         return { message: "Password reset successful" };
+    }
+
+    public async verifyEmail() {
+
     }
 }
 
