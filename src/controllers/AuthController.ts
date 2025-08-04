@@ -27,11 +27,20 @@ class AuthController {
     });
 
 
-    public login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    // public login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    //     const { email, password } = req.body;
+    //     const result = await AuthService.login(email, password);
+    //     res.status(200).json({ message: "Login berhasil", token: result.token });
+    // });
+
+    public login = asyncHandler(async (req: Request, res: Response) => {
         const { email, password } = req.body;
+
         const result = await AuthService.login(email, password);
-        res.status(200).json({ message: "Login berhasil", token: result.token });
+
+        return res.status(200).json(result);
     });
+
 
     public getProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
         const user = await AuthService.getProfile(req.user!.id);

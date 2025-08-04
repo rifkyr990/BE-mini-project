@@ -138,12 +138,32 @@ class AuthService {
     }
 
 
+    // public static async login(email: string, password: string) {
+    //     const user = await prisma.user.findUnique({ where: { email }, include: {points: true} });
+
+    //     if (!user || !(await bcrypt.compare(password, user.password))) {
+    //         throw new Error("Password or email is wrong");
+    //     }
+
+    //     const token = jwt.sign(
+    //         { id: user.id, role: user.role },
+    //         process.env.JWT_SECRET!,
+    //         { expiresIn: "1d" }
+    //     );
+
+    //     return { token };
+    // }
     public static async login(email: string, password: string) {
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { points: true },
+        });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
             throw new Error("Password or email is wrong");
         }
+
+        const totalPoints = user.points.reduce((acc, point) => acc + point.amount, 0);
 
         const token = jwt.sign(
             { id: user.id, role: user.role },
@@ -151,22 +171,44 @@ class AuthService {
             { expiresIn: "1d" }
         );
 
-        return { token };
+        return {
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                role: user.role,
+                profileImage: user.profileImage,
+                points: totalPoints,
+            }
+        };
     }
 
+
     public static async getProfile(userId: string) {
-        return prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                role: true,
-                referralCode: true,
-                profileImage: true,
+            include: {
+            points: true,
             },
         });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const totalPoints = user.points.reduce((acc, point) => acc + point.amount, 0);
+
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            referralCode: user.referralCode,
+            profileImage: user.profileImage,
+            points: totalPoints,
+        };
     }
+
 
     public static async updateProfile(userId: string, data: any, fileStream?: NodeJS.ReadableStream) {
         let uploadedUrl;
