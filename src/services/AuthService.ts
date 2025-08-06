@@ -62,7 +62,7 @@ class AuthService {
         });
 
         if (cleanWhiteSpace && referredById) {
-            const expiresAt = addMonths(new Date(), 3);
+            const expiresAt = addDays(new Date(), 1);
             await prisma.point.create({
                 data: {
                     userId: referredById,
@@ -161,7 +161,7 @@ class AuthService {
         });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new Error("Password or email is wrong");
+            throw new Error("Password salah gaess");
         }
 
         const totalPoints = user.points.reduce((acc, point) => acc + point.amount, 0);
@@ -210,30 +210,74 @@ class AuthService {
         };
     }
 
-
     public static async updateProfile(userId: string, data: any, fileStream?: NodeJS.ReadableStream) {
         let uploadedUrl;
 
         if (fileStream) {
             uploadedUrl = await new Promise<string>((resolve, reject) => {
-                const uploadStream = cloudinary.uploader.upload_stream({ folder: 'upload' }, (err, result) => {
-                    if (err || !result) return reject(err);
-                    resolve(result.secure_url);
-                });
+            const uploadStream = cloudinary.uploader.upload_stream({ folder: 'upload' }, (err, result) => {
+                if (err || !result) return reject(err);
+                resolve(result.secure_url);
+            });
 
-                fileStream.pipe(uploadStream);
+            fileStream.pipe(uploadStream);
             });
         }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error('User not found');
+
+        if (data.currentPassword && data.newPassword) {
+            const isMatch = await bcrypt.compare(data.currentPassword, user.password);
+            if (!isMatch) {
+                throw new Error('Password lama salah');
+            }
+            data.password = await bcrypt.hash(data.newPassword, 10);
+        }
+
+        
+        if (data.email && data.email !== user.email) {
+            const emailToken = jwt.sign(
+                { userId, email: data.email },
+                process.env.JWT_SECRET!,
+                { expiresIn: '1h' }
+            );
+
+            await prisma.emailVerificationToken.create({
+                data: {
+                    userId: user.id,
+                    token: emailToken,
+                    expiresAt: addDays(new Date(), 1),
+                },
+            });
+
+            const verifyLink = `http://localhost:4000/api/auth/verify-email?token=${emailToken}`;
+
+            console.log("Verify email link:", verifyLink);
+
+            await sendEmail({
+                to: data.email,
+                subject: 'Verify Your Email',
+                text: `Please verify your email by clicking the following link:\n\n${verifyLink}`,
+                html: confirmEmailTemplate(data.name || user.name, verifyLink),
+            });
+        }
+
+        // Jangan ikutkan field yg tidak dikenal
+        delete data.currentPassword;
+        delete data.newPassword;
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
-                ...data,
-                ...(uploadedUrl ? { profileImage: uploadedUrl } : {}),
+            ...data,
+            ...(uploadedUrl ? { profileImage: uploadedUrl } : {}),
             },
         });
+
         return updatedUser;
     }
+
 
     public static async forgotPassword(email: string) {
         const user = await prisma.user.findUnique({ where: { email } });

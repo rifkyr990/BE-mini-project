@@ -1,33 +1,64 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';           // import cors
-import authRoutes from './routes/authRoutes';
-import dotenv from "dotenv";
-import transactionRoutes from "../src/routes/transactionRoutes";
-import eventRoutes from "../src/routes/eventRoutes";
-import dashboardRoutes from "../src/routes/dashboardRoutes";
-import attendeeRoutes from "../src/routes/attendeeRoutes"
+import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+import AuthRouter from '../src/routes/auth.route';
+import TransactionRouter from '../src/routes/transaction.route';
+import EventRouter from '../src/routes/event.route';
+import DashboardRouter from '../src/routes/dashboard.route';
+import AttendeeRouter from '../src/routes/attendee.route';
 
 dotenv.config();
 
-const app = express();
+class App {
+  public app: Application;
+  private authRouter: AuthRouter;
+  private transactionRouter: TransactionRouter;
+  private eventRouter: EventRouter;
+  private dashboardRouter: DashboardRouter;
+  private attendeeRouter: AttendeeRouter;
 
-app.use(cors({ 
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true    // ganti dengan URL frontend kamu misal: http://localhost:3000
-}));
+  constructor() {
+    this.app = express();
 
-app.use(express.json());
+    this.authRouter = new AuthRouter();
+    this.transactionRouter = new TransactionRouter();
+    this.eventRouter = new EventRouter();
+    this.dashboardRouter = new DashboardRouter();
+    this.attendeeRouter = new AttendeeRouter();
 
-app.use("/api/auth", authRoutes);
-app.use("/api/transactions", transactionRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/dashboard/", dashboardRoutes)
-app.use('/api/attendees', attendeeRoutes);
+    this.configureMiddleware();
+    this.configureRoutes();
+    this.configureErrorHandling();
+  }
 
-// Middleware error handling
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(err); 
-    res.status(500).json({ message: 'Something went wrong', error: err.message || err });
-});
+  private configureMiddleware(): void {
+    this.app.use(cors({
+      origin: process.env.FRONTEND_URL || '*',
+      credentials: true,
+    }));
 
-export default app;
+    this.app.use(express.json());
+  }
+
+  private configureRoutes(): void {
+    this.app.use("/api/auth", this.authRouter.getRouter());
+    this.app.use("/api/transactions", this.transactionRouter.getRouter());
+    this.app.use("/api/events", this.eventRouter.getRouter());
+    this.app.use("/api/dashboard", this.dashboardRouter.getRouter());
+    this.app.use("/api/attendees", this.attendeeRouter.getRouter());
+  }
+
+  private configureErrorHandling(): void {
+    this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+      console.error(err);
+      res.status(500).json({ message: 'Something went wrong', error: err.message || err });
+    });
+  }
+
+  public getApp(): Application {
+    return this.app;
+  }
+}
+
+export default App;
