@@ -104,6 +104,7 @@ model Attendee {
   eventId    String
   ticketQty  Int
   totalPaid  Int
+  isCheckedIn Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
 

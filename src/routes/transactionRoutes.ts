@@ -7,6 +7,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 const transactionController = new Transaction();
 
+router.get("/:eventId", auth('ORGANIZER'), transactionController.getTransactionByEventID);
 router.post("/", auth("CUSTOMER"),transactionController.createTransaction);
 router.patch("/:transactionId/reject", auth("ORGANIZER"), transactionController.rejectTransaction);
 router.patch("/:transactionId/accept", auth("ORGANIZER"), transactionController.acceptTransaction);

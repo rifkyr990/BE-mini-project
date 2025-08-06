@@ -39,6 +39,14 @@ class EventService {
         })
     }
 
+    public static async findByIdUser(organizerId: string) {
+        return await prisma.event.findMany({
+            where: {
+                organizerId // Menyaring event berdasarkan organizerId yang sesuai dengan userId
+            }
+        });
+    }
+
     public static async update(id: string, data: any) {
         return await prisma.event.update({
             where: { id },

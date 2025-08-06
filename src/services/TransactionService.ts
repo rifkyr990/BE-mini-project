@@ -3,89 +3,121 @@ import { sendEmail } from "../utils/sendMail";
 import { transactionSuccessMail } from "../template/transactionSuccesMail";
 import { transactionFailedMail } from "../template/transactionFailedMail";
 import cloudinary from "../config/cloudinaryConfig";
+import { userInfo } from "os";
 class TransactionService {
+    public static async getTransactionByEventID(organizerId: string, eventId: string) {
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                eventId: eventId,
+                event: {
+                    organizerId: organizerId,
+                },
+            },
+            include: {
+                user: true, 
+                event: true, 
+            },
+            orderBy: {
+                createdAt: 'asc', 
+            },
+        });
+
+        return transactions.map((transaction) => ({
+            transactionId: transaction.id,
+            userId: transaction.userId,
+            ticketQty: transaction.ticketQty,
+            totalPrice: transaction.totalPrice,
+            proofImage: transaction.proofImage,
+            usedPoints: transaction.usedPoints,
+            status: transaction.status,
+            eventTitle: transaction.event.title, 
+            userName: transaction.user.name, // Menambahkan nama pengguna pada response
+        }));
+    };
+
+
     public static async createTransaction(userId: string, data: {
         eventId: string;
         ticketQty: number;
         couponId?: string;
         usePoints: boolean;
     }) {
-    const { eventId, ticketQty, couponId, usePoints } = data;
+        const { eventId, ticketQty, couponId, usePoints } = data;
 
-    const event = await prisma.event.findUnique({
-        where: { id: eventId },
-    });
-
-    if (!event) throw new Error("Event not found");
-
-    const pricePerTicket = 10000;
-    let discount = 0;
-    let pointToUse = 0;
-
-    // === CHECK & APPLY COUPON ===
-    if (couponId) {
-        const coupon = await prisma.coupon.findUnique({
-            where: { id: couponId }
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
         });
 
-        if (!coupon || coupon.userId !== userId) {
-            throw new Error("Coupon not valid");
-        }
+        if (!event) throw new Error("Event not found");
 
-        if (coupon.used) {
-            throw new Error("Coupon already used");
-        }
+        const pricePerTicket = 10000;
+        let discount = 0;
+        let pointToUse = 0;
 
-        if (new Date(coupon.expiresAt) < new Date()) {
-            throw new Error("Coupon expired");
-        }
-
-        discount = coupon.value;
-    }
-
-    // === CHECK & APPLY POINTS ===
-    if (usePoints) {
-        const now = new Date();
-        const activePoints = await prisma.point.findMany({
-        where: {
-            userId,
-            expiresAt: { gt: now },
-        },
-            orderBy: { createdAt: 'asc' }
-        });
-
-        const totalAvailablePoints = activePoints.reduce((sum, p) => sum + p.amount, 0);
-        const sisaSetelahDiskon = pricePerTicket * ticketQty - discount;
-
-        pointToUse = Math.min(sisaSetelahDiskon, totalAvailablePoints);
-    }
-
-    // === FINAL TOTAL PRICE ===
-    const totalPrice = pricePerTicket * ticketQty - discount - pointToUse;
-
-        const transaction = await prisma.transaction.create({
-            data: {
-                userId,
-                eventId,
-                ticketQty,
-                totalPrice,
-                usedPoints: pointToUse,
-                status: "PENDING",
-            },
-        });
-
+        // === CHECK & APPLY COUPON ===
         if (couponId) {
-            await prisma.coupon.update({
-            where: { id: couponId },
-            data: {
-                used: true,
-                usedAt: new Date(),
-                eventId,
-            }
+            const coupon = await prisma.coupon.findUnique({
+                where: { id: couponId }
             });
+
+            if (!coupon || coupon.userId !== userId) {
+                throw new Error("Coupon not valid");
+            }
+
+            if (coupon.used) {
+                throw new Error("Coupon already used");
+            }
+
+            if (new Date(coupon.expiresAt) < new Date()) {
+                throw new Error("Coupon expired");
+            }
+
+            discount = coupon.value;
         }
 
-        return transaction;
+        // === CHECK & APPLY POINTS ===
+        if (usePoints) {
+            const now = new Date();
+            const activePoints = await prisma.point.findMany({
+            where: {
+                userId,
+                expiresAt: { gt: now },
+            },
+                orderBy: { createdAt: 'asc' }
+            });
+
+            const totalAvailablePoints = activePoints.reduce((sum, p) => sum + p.amount, 0);
+            const sisaSetelahDiskon = pricePerTicket * ticketQty - discount;
+
+            pointToUse = Math.min(sisaSetelahDiskon, totalAvailablePoints);
+        }
+
+        // === FINAL TOTAL PRICE ===
+        const totalPrice = pricePerTicket * ticketQty - discount - pointToUse;
+
+            const transaction = await prisma.transaction.create({
+                data: {
+                    userId,
+                    eventId,
+                    ticketQty,
+                    totalPrice,
+                    usedPoints: pointToUse,
+                    status: "PENDING",
+                },
+            });
+
+            if (couponId) {
+                await prisma.coupon.update({
+                where: { id: couponId },
+                data: {
+                    used: true,
+                    usedAt: new Date(),
+                    eventId,
+                }
+                });
+            }
+
+            return transaction;
     };
 
     public static async rejectTransaction(transactionId: string) {
@@ -148,7 +180,7 @@ class TransactionService {
                 to: user.email,
                 subject: "Transaksi Ditolak",
                 text: `Maaf, transaksi Anda untuk event "${event.title}" telah ditolak. Kupon dan poin Anda telah dikembalikan.`,
-                html: transactionFailedMail(user.name)
+                html: transactionFailedMail(user.name, event.title, event.date, event.location, transaction.ticketQty, transaction.totalPrice)
             })
         }
 
@@ -207,7 +239,7 @@ class TransactionService {
                 to: user.email,
                 subject: "Transaksi Diterima",
                 text: `Transaksi Anda untuk event "${transaction.event.title}" telah diterima.`,
-                html: transactionSuccessMail(user.name),
+                html: transactionSuccessMail(user.name, event.title, event.date, event.location, transaction.ticketQty, transaction.totalPrice),
             });
         }
 

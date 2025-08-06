@@ -6,6 +6,7 @@ import { generateReferralCode } from "../utils/generatedReferal";
 import cloudinary from "../config/cloudinaryConfig";
 import { addMonths, addDays } from 'date-fns';
 import { sendEmail } from "../utils/sendMail";
+import { confirmEmailTemplate } from "../template/confirmEmailTemplate";
 
 class AuthService {
 
@@ -96,7 +97,7 @@ class AuthService {
             to: email,
             subject: 'Verify Your Email',
             text: `Please verify your email by clicking the following link:\n\n${verifyLink}`,
-            html: `<p>Hello ${name},</p><p>Click the link below to verify your email:</p><button><a target="_blank" href="${verifyLink}">Click here</a></button>`
+            html: confirmEmailTemplate(name, verifyLink),
         });
 
         return {

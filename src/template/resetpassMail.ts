@@ -39,7 +39,7 @@ export const resetpassMailTemplate = (username: string, link: string) => {
 
       a.button {
         display: inline-block;
-        background-color: #0867ec;
+        background-color: #19b02f;
         color: white !important;
         text-decoration: none;
         padding: 12px 24px;
@@ -74,17 +74,17 @@ export const resetpassMailTemplate = (username: string, link: string) => {
   </head>
   <body>
     <div class="container">
-      <h1>Hello, ${username}</h1>
-      <p>We received a request to reset your password. Click the button below to reset it. This link will expire in 15 minutes for your security.</p>
-      
+      <h1>Halo, ${username}</h1>
+      <p>Kami menerima permintaan untuk mengatur ulang kata sandi Anda. Klik tombol di bawah ini untuk melanjutkan. Tautan ini akan kedaluwarsa dalam 15 menit demi keamanan Anda.</p>
+
       <p style="text-align: center;">
-        <a href="${link}" class="button" target="_blank">Reset Password</a>
+        <a href="${link}" class="button" target="_blank">Atur Ulang Kata Sandi</a>
       </p>
 
-      <p>If you didn’t request a password reset, you can safely ignore this email.</p>
+      <p>Jika Anda tidak meminta pengaturan ulang kata sandi, Anda dapat mengabaikan email ini dengan aman.</p>
 
       <p class="footer">
-        &copy; ${new Date().getFullYear()} Your Company Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} Ticket.com. Seluruh hak cipta dilindungi.
       </p>
     </div>
   </body>

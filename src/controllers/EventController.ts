@@ -37,6 +37,14 @@ class EventController {
         res.status(200).json(event);
     });
 
+    public getEventsByUser = asyncHandler(async (req: Request, res: Response) => {
+        if (req.user?.role !== 'ORGANIZER') {
+            return res.status(403).json({ message: "Akses hanya untuk ORGANIZER" });
+        }
+        const events = await EventService.findByIdUser(req.user.id);
+        return res.status(200).json(events);
+    });
+
     public updateEvent = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
         const event = await EventService.update(id, req.body);

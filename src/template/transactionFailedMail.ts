@@ -1,4 +1,4 @@
-export const transactionFailedMail = (nama: string) => {
+export const transactionFailedMail = (name: string, event: string, date: Date, location: any, ticketQty: number, totalPaid: number) => {
     return `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -63,14 +63,16 @@ export const transactionFailedMail = (nama: string) => {
       <h1>Transaksi Gagal</h1>
     </div>
     <div class="content">
-      <h2>Hai ${nama},</h2>
+      <h2>Hai ${name},</h2>
       <p>Sayangnya, transaksi pembelian tiket Anda tidak berhasil. Berikut adalah detail transaksi Anda:</p>
       <div class="details">
-        <p><strong>Nomor Referensi:</strong> [REF123456]</p>
-        <p><strong>Acara:</strong> [Nama Acara]</p>
-        <p><strong>Tanggal:</strong> [31 Juli 2025]</p>
-        <p><strong>Jumlah Tiket:</strong> [2]</p>
-        <p><strong>Total Pembayaran:</strong> Rp[150.000]</p>
+        <p><strong>Nomor Referensi:</strong> REF123456</p>
+        <p><strong>Acara:</strong> ${event}</p>
+        <p><strong>Tanggal:</strong> ${date}</p>
+        <p><strong>Waktu:</strong> 19.00 WIB</p>
+        <p><strong>Lokasi:</strong> ${location}</p>
+        <p><strong>Jumlah Tiket:</strong> ${ticketQty}</p>
+        <p><strong>Total Pembayaran: ${totalPaid}</strong> </p>
         <p><strong>Status:</strong> Gagal</p>
       </div>
       <p>Kemungkinan penyebab:</p>
@@ -83,7 +85,7 @@ export const transactionFailedMail = (nama: string) => {
       <a href="[link_ulang_transaksi]" class="button">Coba Lagi</a>
     </div>
     <div class="footer">
-      &copy; 2025 [Nama Perusahaan]. Semua hak dilindungi.
+      &copy; 2025 Ticket.com. Semua hak dilindungi.
     </div>
   </div>
 </body>

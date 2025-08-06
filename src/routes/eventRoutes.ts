@@ -8,6 +8,7 @@ const router = Router();
 const eventController = new EventController();
 
 router.get('/', eventController.getAllEvents);
+router.get('/organizer', auth('ORGANIZER'), eventController.getEventsByUser);
 router.get('/:id', eventController.getEventById);
 router.post('/', auth('ORGANIZER'), upload.single('banner'), eventController.createEvent);
 router.put('/:id', auth('ORGANIZER'), eventController.updateEvent);

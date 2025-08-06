@@ -5,6 +5,16 @@ import streamifier from 'streamifier'
 import TransactionService from "../services/TransactionService";
 
 class Transaction {
+    
+    public getTransactionByEventID = asyncHandler(async (req: Request, res: Response) => { // Ambil eventId dari parameter URL
+        const userId = req.user!.id; // Asumsi user sudah di-autentikasi dan id organizer ada di req.user.id
+        const { eventId } = req.params;
+        // Ambil daftar transaksi untuk event yang dimiliki oleh organizer
+        const transactions = await TransactionService.getTransactionByEventID(userId, eventId);
+        
+        res.json(transactions); // Kirimkan transaksi yang ditemukan
+    });
+
     public createTransaction = asyncHandler(async (req: Request, res: Response) => {
         const userId = req.user!.id;
         const transaction = await TransactionService.createTransaction(userId, req.body);

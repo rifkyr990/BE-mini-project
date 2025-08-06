@@ -1,4 +1,4 @@
-export const transactionSuccessMail = (nama: string) => {
+export const transactionSuccessMail = (name: string, event: string, date: Date, location: any, ticketQty: number, totalPaid: number) => {
     return `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -21,7 +21,7 @@ export const transactionSuccessMail = (nama: string) => {
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     }
     .header {
-      background-color: #1e88e5;
+      background-color: #19b02f;
       color: white;
       padding: 20px;
       text-align: center;
@@ -46,9 +46,11 @@ export const transactionSuccessMail = (nama: string) => {
       padding: 20px;
     }
     a.button {
-      display: inline-block;
+      display: block;
+      margin: auto;
+      text-align: center;
       padding: 10px 20px;
-      background-color: #1e88e5;
+      background-color: #19b02f;
       color: #ffffff;
       text-decoration: none;
       border-radius: 5px;
@@ -62,16 +64,16 @@ export const transactionSuccessMail = (nama: string) => {
       <h1>Transaksi Berhasil</h1>
     </div>
     <div class="content">
-      <h2>Hai ${nama},</h2>
+      <h2>Hai ${name},</h2>
       <p>Terima kasih telah melakukan pemesanan tiket. Berikut adalah detail transaksi Anda:</p>
       <div class="details">
-        <p><strong>Nomor Tiket:</strong> [TIKET123456]</p>
-        <p><strong>Acara:</strong> [Nama Acara]</p>
-        <p><strong>Tanggal:</strong> [31 Juli 2025]</p>
-        <p><strong>Waktu:</strong> [19.00 WIB]</p>
-        <p><strong>Lokasi:</strong> [Nama Tempat/Alamat]</p>
-        <p><strong>Jumlah Tiket:</strong> [2]</p>
-        <p><strong>Total Pembayaran:</strong> Rp[150.000]</p>
+        <p><strong>Nomor Tiket:</strong> TIKET123456</p>
+        <p><strong>Acara:</strong> ${event}</p>
+        <p><strong>Tanggal:</strong> ${date}</p>
+        <p><strong>Waktu:</strong> 19.00 WIB</p>
+        <p><strong>Lokasi:</strong> ${location}</p>
+        <p><strong>Jumlah Tiket:</strong> ${ticketQty}</p>
+        <p><strong>Total Pembayaran:</strong> Rp ${totalPaid}</p>
       </div>
       <p>Silakan unduh tiket Anda melalui tombol di bawah ini:</p>
       <a href="[link_download_tiket]" class="button">Unduh Tiket</a>
